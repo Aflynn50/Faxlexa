@@ -1,0 +1,7 @@
+1. Alexa command (Alexa send a fax) 
+2. Alexa records what we are saying 
+3. Transcribe it into text
+4. Store the text on AWS server
+5. Thanatos has to get the text
+6. Text to fax packets 
+7. Send fax to fax machine
