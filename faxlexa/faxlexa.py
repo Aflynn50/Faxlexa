@@ -4,8 +4,12 @@
 # By Alastair Flynn <alastair.flynn@metaswtitch.com>
 #
 # Alexa speech to fax
-
+from PIL import Image, ImageFont, ImageDraw
 import logging
+import base64
+import os
+import time
+import subprocess
 from datetime import datetime
 from flask import Flask, json, render_template
 from flask_ask import Ask, request, session, question, statement
@@ -14,7 +18,27 @@ from flask_ask import Ask, request, session, question, statement
 app = Flask(__name__)
 ask = Ask(app, '/')
 logging.getLogger("flask_ask").setLevel(logging.DEBUG)
+text = []
+HEADER = """Return-path: fax-admin@mbox.datcon.co.uk
+Received:  by iaburouter3.datcon.co.uk for <FAX=273@mbox.datcon.co.uk> (with Cisco NetWorks); Mon, 13 Nov 2006 14:33:03 +0000
+To: "273" <FAX=273@mbox.datcon.co.uk>
+Message-ID: <00322006143303358@iaburouter3.datcon.co.uk>
+Date: Mon, 13 Nov 2006 14:33:03 +0000
+Subject: Fax (2 pages)
+X-Mailer: Technical Support: http://www.cisco
+MIME-Version: 1.0
+Content-Type: multipart/fax-message;
+ boundary="yradnuoB=_00312006143303130.iaburouter3.datcon.co.uk"
+From: "01316621345" <fax-admin@mbox.datcon.co.uk>
+X-Account-Id: 0
 
+--yradnuoB=_00312006143303130.iaburouter3.datcon.co.uk
+Content-ID: <00332006143327371@iaburouter3.datcon.co.uk>
+Content-Type: image/tiff; name="Cisco_fax.tif"; application=faxbw
+Content-Transfer-Encoding: base64
+
+"""
+FOOTER="--yradnuoB=_00312006143303130.iaburouter3.datcon.co.uk--"
 # Session starter
 #
 # This intent is fired automatically at the point of launch (= when the session starts).
@@ -92,25 +116,40 @@ def handle_help():
     help_text = render_template('help_text')
     return question(help_text)
 
-@ask.intent('StartMessageIntent')
-def handle_start_message():
-    text = []
-    speech_text = 'Hello world'
-    return statement(speech_text).simple_card('HelloWorld', speech_text)
 
-@ask.intent('ContinueMessageIntent')
-def handle_start_message(message):
+@ask.launch
+def start_skill():
+    msg = "Ok Grandpa"
+    return question(msg)
+
+@ask.intent('MessageContentIntent', mapping={'message': 'FaxPhrase'})
+def handle_cont_message(message):
+    global text
     text.append(message)
-    speech_text = 'Hello world'
-    return statement(speech_text).simple_card('HelloWorld', speech_text)
+    print("\n\n\n\n" + message)
+    speech_text = 'Go on'
+    return question(speech_text).reprompt("Come on, I haven't got all day")
 
 @ask.intent('EndMessageIntent')
-def handle_start_message():
-    #Convert and send message
-    speech_text = 'Hello world'
-    return statement(speech_text).simple_card('HelloWorld', speech_text)
+def handle_end_message():
+    global text
+    print(text)
+    speech_text = 'Sending fax ' + " ".join(text)
+    img = Image.new("RGB", (595, 842), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype("comicsans.ttf", 50)
+    draw.text((0, 0),"\n".join(text),(0,0,0),font=font)
+    img.save('faxypic.png', "PNG")
+    bashCommand1 = "convert faxypic.png fax.pdf"
+    os.system(bashCommand1)
+    time.sleep(0.5)
+    res = subprocess.check_output('mail -s "fakesubject" 442083632300@myfax.com -A fax.pdf < message.txt', shell=True)
+    print(str(res))
+    return statement(speech_text)
 
-
+@ask.session_ended
+def session_ended():
+    return statment("Fine, don't send a fax then")
 
 @app.route("/")
 def hello():
@@ -139,4 +178,4 @@ def session_ended():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=443, ssl_context='adhoc')
+    app.run(debug=True)
