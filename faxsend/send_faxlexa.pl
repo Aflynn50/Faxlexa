@@ -43,12 +43,12 @@ if ($lrc)
 #* Trigger fax print through TUI                                             *#
 #*****************************************************************************#
 Log("Starting SIPp command");
-deleteSippOutput("faxlexa");
-my $lpid = startSippSubscriber(script => "faxlexa",
+deleteSippOutput("faxlexa_print");
+my $lpid = startSippSubscriber(script => "faxlexa_print",
                                number => "5140001157");
 Log("Wait for read to finish");
 waitSipp($lpid);
-dumpSippOutput($lpid, "faxlexa");
+dumpSippOutput($lpid, "faxlexa_print");
 
 #*****************************************************************************#
 #* Start a SIPp listener for the outdial                                     *#
