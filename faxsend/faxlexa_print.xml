@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE scenario SYSTEM "sipp.dtd">
+
+<!--========================================================================-->
+<!-- FAX PRINT                                                              -->
+<!--                                                                        -->
+<!-- Send a fax from the mailbox using the TUI.                             -->
+<!--                                                                        -->
+<!--========================================================================-->
+<scenario name="faxlexa">
+
+  <send retrans="500">
+    <![CDATA[
+
+      INVITE sip:1324576890@[remote_ip]:[remote_port] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      P-Asserted-Identity: <sip:[subscriber]@[local_ip]:[local_port]>
+      From: [subscriber] <sip:[subscriber]@[local_ip]:[local_port]>;tag=[call_number]
+      To: cfn <sip:1324576890@[remote_ip]:[remote_port]>
+      Call-ID: FAXRETRIEVAL-///[call_id]
+      CSeq: 1 INVITE
+      Contact: sip:sipp@[local_ip]:[local_port]
+      Max-Forwards: 70
+      Content-Type: application/sdp
+      Content-Length: [len]
+
+      v=0
+      o=- 3368271778 3368271778 IN IP[local_ip_type] [local_ip]
+      s=SIPP
+      c=IN IP[local_ip_type] [local_ip]
+      t=0 0
+      m=audio [auto_media_port] RTP/AVP 0 101 111
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-11,16
+      a=rtpmap:111 x-dcl/text-prompt
+
+
+    ]]>
+  </send>
+
+  <recv response="100" optional="true">
+  </recv>
+
+  <recv response="180" optional="true">
+  </recv>
+
+  <recv response="200" rtd="true" crlf="true">
+  </recv>
+
+  <send>
+    <![CDATA[
+
+      ACK sip:[subscriber]@[remote_ip]:[remote_port] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      From: [subscriber] <sip:[subscriber]@[local_ip]:[local_port]>;tag=[call_number]
+      To: cfn <sip:1324576890@[remote_ip]:[remote_port]>[peer_tag_param]
+      Call-ID: FAXRETRIEVAL-///[call_id]
+      CSeq: 1 ACK
+      Contact: sip:sipp@[local_ip]:[local_port]
+      Max-Forwards: 70
+      Content-Length: 0
+
+    ]]>
+  </send>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to enter pin                                         -->
+  <!--======================================================================-->
+  <rtprecv prompt="Enter PIN or star to log on as another subscriber.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Enter PIN                                                            -->
+  <!--======================================================================-->
+  <rtpsend dtmf="6,9,6,9,6,9,#" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for confirmation of the new fax                                 -->
+  <!--======================================================================-->
+  <rtprecv prompt="New faxes.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press 1 to get messages                                              -->
+  <!--======================================================================-->
+  <rtpsend dtmf="1" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to get fax messages                                  -->
+  <!--======================================================================-->
+  <rtprecv prompt="To get your faxes.wav" timeout="45000" ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press 3 to get fax messages                                          -->
+  <!--======================================================================-->
+  <rtpsend dtmf="3" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to forward the fax                                   -->
+  <!--======================================================================-->
+  <rtprecv prompt="To forward a copy.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press 5 to forward the fax                                           -->
+  <!--===================================================================== =-->
+  <rtpsend dtmf="5" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to send a copy to a fax machine                      -->
+  <!--======================================================================-->
+  <rtprecv prompt="To forward this message to a fax machine.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press 2 to send a copy of the fax                                    -->
+  <!--======================================================================-->
+  <rtpsend dtmf="2" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to use fax print number                              -->
+  <!--======================================================================-->
+  <rtprecv prompt="To use your default fax number.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press # to send the fax to the subscriber's fax print number         -->
+  <!--======================================================================-->
+  <rtpsend dtmf="#" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for prompt to confirm fax forwarding                            -->
+  <!--======================================================================-->
+  <rtprecv prompt="Fax forward confirm.wav" 
+           timeout="45000" 
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- Press # to confirm sending the fax                                   -->
+  <!--======================================================================-->
+  <rtpsend dtmf="#" duration="100"/>
+
+  <!--======================================================================-->
+  <!-- Wait for confirmation that fax has been sent                         -->
+  <!--======================================================================-->
+  <rtprecv prompt="Your message has been sent.wav"
+           timeout="45000"
+           ontimeout="end_sub"/>
+
+  <!--======================================================================-->
+  <!-- End the call.                                                        -->
+  <!--======================================================================-->
+  <label id="end_sub"/>
+  <send retrans="500">
+    <![CDATA[
+
+      BYE sip:[subscriber]@[remote_ip]:[remote_port] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      From: [subscriber] <sip:[subscriber]@[local_ip]:[local_port]>;tag=[call_number]
+      To: cfn <sip:1324576890@[remote_ip]:[remote_port]>[peer_tag_param]
+      Call-ID: FAXRETRIEVAL-///[call_id]
+      CSeq: 99 BYE
+      Contact: sip:sipp@[local_ip]:[local_port]
+      Max-Forwards: 70
+      Content-Length: 0
+
+    ]]>
+  </send>
+
+  <recv response="200" crlf="true">
+  </recv>
+
+  <pause milliseconds="20000"/>
+
+</scenario>
+
