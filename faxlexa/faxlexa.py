@@ -10,6 +10,7 @@ import base64
 import os
 import time
 import subprocess
+import textwrap
 from datetime import datetime
 from flask import Flask, json, render_template
 from flask_ask import Ask, request, session, question, statement
@@ -119,14 +120,18 @@ def handle_help():
 
 @ask.launch
 def start_skill():
+    global text
+    text = []
     msg = "Ok Grandpa"
     return question(msg)
 
 @ask.intent('MessageContentIntent', mapping={'message': 'FaxPhrase'})
 def handle_cont_message(message):
     global text
-    text.append(message)
-    print("\n\n\n\n" + message)
+    msg = textwrap.fill(message, width=20) + "."
+    msg = msg[0].upper() + msg[1:]
+    text.append(msg)
+    print("\n\n\n\n" + msg)
     speech_text = 'Go on'
     return question(speech_text).reprompt("Come on, I haven't got all day")
 
@@ -137,19 +142,35 @@ def handle_end_message():
     speech_text = 'Sending fax ' + " ".join(text)
     img = Image.new("RGB", (595, 842), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("comicsans.ttf", 50)
+    font = ImageFont.truetype("comicsans.ttf",50)
     draw.text((0, 0),"\n".join(text),(0,0,0),font=font)
     img.save('faxypic.png', "PNG")
     bashCommand1 = "convert faxypic.png fax.pdf"
     os.system(bashCommand1)
-    time.sleep(0.5)
-    res = subprocess.check_output('mail -s "fakesubject" 442083632300@myfax.com -A fax.pdf < message.txt', shell=True)
-    print(str(res))
-    return statement(speech_text)
+    sendfaxpic('fax.pdf')
+    text = []
+    return question(speech_text)
+
+@ask.intent('FaxMemeIntent')
+def memefax():
+    sendfaxpic('memeyfax.pdf')
+    return statement('yeeting over the finest memes as we speak')
+
+def sendfaxpic(pdfname):
+    address = '442083632300@myfax.com'
+    #address = 'alastairflynn@hotmail.co.uk'
+    body = b'sporg'
+    proc = subprocess.Popen(['mail', address, '-A', pdfname], stdin=subprocess.PIPE) #shell=True)
+    proc.communicate(body)
+
 
 @ask.session_ended
 def session_ended():
     return statment("Fine, don't send a fax then")
+
+@ask.intent('AMAZON.FallbackIntent')
+def deafult():
+    return question('Could you please repeat that?')
 
 @app.route("/")
 def hello():

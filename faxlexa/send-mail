@@ -1,5 +1,14 @@
 #!/bin/bash
-FILE=fax.pdf
-if test -f "$FILE"; then
-	echo "$FILE exists"
-fi
+FILE=faxypic.png
+while :
+do
+	if test -f "$FILE"; then
+		echo "$FILE exists"
+		convert faxypic.png fax.pdf
+		rm faxypic.png -f
+		mail -s "fakesubject" alexander.rader@metaswitch.com -A fax.pdf < message.txt
+	else
+		echo "$FILE doesn't exist"
+	fi
+	sleep 1
+done
